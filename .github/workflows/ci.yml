@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm build
+
+      # Added once the test runner lands (/test): pnpm test, with a Postgres
+      # service for integration tests, per spec 0001.
+      # Added once Prisma lands (data model spec, scope item 3): a migration
+      # dry run (`prisma migrate diff` against the target DB) as a required
+      # check, per spec 0001.

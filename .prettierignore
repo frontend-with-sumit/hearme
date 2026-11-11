@@ -1,0 +1,11 @@
+.next
+node_modules
+pnpm-lock.yaml
+
+# Vendored Agent Skills content, not ours to format
+.agents/skills/
+.claude/skills/
+
+# Curated prose, not code
+docs/
+*.md
