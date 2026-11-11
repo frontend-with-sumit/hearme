@@ -12,7 +12,7 @@ _These are recommendations to keep the build orderly, not requirements. Skip any
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
 | 1 | Stack & architecture | Foundation | done |
-| 2 | Coding standards & tooling | Foundation | planned |
+| 2 | Coding standards & tooling | Foundation | in-progress |
 | 3 | Data model | Foundation | planned |
 | 4 | Design system & UI foundation | Foundation | planned |
 | 5 | Core booking thread | Slice 1 | planned |
@@ -53,10 +53,11 @@ Record the full stack (Next.js App Router + TypeScript, Tailwind + shadcn/ui, Po
 - [x] Document it: `/document stack & architecture`
 Spec [0001](../specs/0001-stack-architecture/index.md) · code in `.` (project root)
 
-### 2. Coding standards & tooling
+### 2. Coding standards & tooling · in-progress
 Capture conventions and install lint, format, pre-commit, and CI from the real scaffolded project.
 **Done when:** root `AGENTS.md` reflects the real stack and lint/format/pre-commit run clean.
-- [ ] Capture conventions + tooling choices: `/audit`
+- [x] Capture conventions + tooling choices: `/audit`
+- [x] Install lint, format, pre-commit, CI: `/develop tooling` (code in `.` project root)
 
 ### 3. Data model · needs a decision
 Core entities (Booking, Payment, Refund, WebhookEvent, Job, GoogleConnection, EmailLog, AuditLog, Settings), the no double booking exclusion constraint, and the encrypted PII envelope, so every later feature has somewhere real to read and write.
