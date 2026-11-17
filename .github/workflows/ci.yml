@@ -37,6 +37,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # src/generated/prisma is gitignored (it's generated code), so a fresh
+      # checkout has no Prisma Client until this runs; lint/typecheck/build
+      # all import from it.
+      - run: pnpm exec prisma generate
+
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
