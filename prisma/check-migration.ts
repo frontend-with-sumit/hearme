@@ -29,9 +29,13 @@ async function main() {
   assert(
     exclusion.rowCount === 1 &&
       exclusion.rows[0].def.includes("EXCLUDE USING gist") &&
-      exclusion.rows[0].def.includes('"blockedRange"'),
-    "Booking.blockedRange exclusion constraint is missing or changed shape",
+      exclusion.rows[0].def.includes('"blockedRange"') &&
+      exclusion.rows[0].def.includes("HELD") &&
+      exclusion.rows[0].def.includes("CONFIRMED"),
+    "Booking.blockedRange exclusion constraint is missing, or no longer limited to HELD and CONFIRMED",
   );
+
+  await assertAuditLogRejectsChanges(pool);
 
   const role = await pool.query(
     `SELECT 1 FROM pg_roles WHERE rolname = 'hearme_app'`,
@@ -47,6 +51,12 @@ async function main() {
       "hearme_app still has UPDATE/DELETE on AuditLog — AC-14 hardening regressed",
     );
   } else {
+    // CI creates the role on purpose; a missing one there means the REVOKE
+    // check silently stopped running.
+    assert(
+      !process.env.CI,
+      "hearme_app role is missing in CI, so the AuditLog REVOKE check cannot run",
+    );
     console.warn(
       "hearme_app role does not exist in this database; skipping the AuditLog REVOKE check (AC-14 is unverified here, not failed).",
     );
@@ -54,6 +64,39 @@ async function main() {
 
   await pool.end();
   console.log("Migration smoke test passed.");
+}
+
+/// Tries a real UPDATE and DELETE on an AuditLog row as the connecting role
+/// (the owner in CI) and expects both to be refused, then rolls everything
+/// back. Checks the behavior, not just that a grant or trigger exists.
+async function assertAuditLogRejectsChanges(pool: Pool): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `INSERT INTO "AuditLog" ("id", "actorType", "action", "targetType", "targetId")
+       VALUES ('migrate-check-audit', 'SYSTEM', 'LOGIN', 'migrate-check', 'migrate-check')`,
+    );
+
+    for (const statement of [
+      `UPDATE "AuditLog" SET "targetId" = 'changed' WHERE "id" = 'migrate-check-audit'`,
+      `DELETE FROM "AuditLog" WHERE "id" = 'migrate-check-audit'`,
+    ]) {
+      await client.query("SAVEPOINT attempt");
+      const refused = await client.query(statement).then(
+        () => false,
+        () => true,
+      );
+      await client.query("ROLLBACK TO SAVEPOINT attempt");
+      assert(
+        refused,
+        `AuditLog accepted "${statement.split(" ")[0]}" — AC-14 hardening regressed`,
+      );
+    }
+  } finally {
+    await client.query("ROLLBACK").catch(() => undefined);
+    client.release();
+  }
 }
 
 function assert(condition: boolean, message: string): void {

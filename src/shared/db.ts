@@ -11,13 +11,17 @@ import { getEnv } from "./env";
 
 neonConfig.webSocketConstructor = ws;
 
-let client: PrismaClient | undefined;
+// Kept on globalThis so Next dev hot reloads reuse one Neon pool instead of
+// opening a new one on every module reload.
+const globalForDb = globalThis as { hearmeDb?: PrismaClient };
 
+/// Returns the one shared Prisma client, creating it on first use from the
+/// validated env. Pass a different client to the shared-layer functions in tests.
 export function getDb(): PrismaClient {
-  if (!client) {
+  if (!globalForDb.hearmeDb) {
     const env = getEnv();
     const adapter = new PrismaNeon({ connectionString: env.databaseUrl });
-    client = new PrismaClient({ adapter });
+    globalForDb.hearmeDb = new PrismaClient({ adapter });
   }
-  return client;
+  return globalForDb.hearmeDb;
 }

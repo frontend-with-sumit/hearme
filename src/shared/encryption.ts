@@ -128,17 +128,48 @@ export function hmacEmail(email: string): string {
     .digest("base64");
 }
 
-const PERSONAL_FIELDS = ["name", "email", "phone"] as const;
+// "contact" is Razorpay's name for the payer's phone; "notes" is free text the
+// client or checkout can fill; "vpa" (UPI id) and "card" identify the payer.
+const PERSONAL_FIELD_TOKENS = new Set([
+  "name",
+  "email",
+  "phone",
+  "contact",
+  "notes",
+  "vpa",
+  "card",
+]);
 
-/// Strips any client personal field (name, email, phone) before a
-/// WebhookEvent.payload write (AC-5): keeps only ids, amounts, and status.
+function isPersonalKey(key: string): boolean {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .some((token) => PERSONAL_FIELD_TOKENS.has(token));
+}
+
+function redactValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(redactValue);
+  }
+  if (typeof value === "object" && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => !isPersonalKey(key))
+        .map(([key, nested]) => [key, redactValue(nested)]),
+    );
+  }
+  return value;
+}
+
+/// Strips client personal fields (name, email, phone/contact, notes, UPI id,
+/// card) at every nesting depth before a WebhookEvent.payload write (AC-5).
+/// Razorpay nests the payer under payload.payment.entity, so a top level
+/// filter alone would leave it in a table that has no erasure path. Keys
+/// match by whole word (split on `_`, `-`, camelCase), so "customerName" is
+/// stripped but "username" is kept.
 export function redactWebhookPayload(
   payload: Record<string, unknown>,
 ): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(payload).filter(
-      ([key]) =>
-        !PERSONAL_FIELDS.some((field) => key.toLowerCase().includes(field)),
-    ),
-  );
+  return redactValue(payload) as Record<string, unknown>;
 }

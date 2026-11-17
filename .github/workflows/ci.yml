@@ -47,13 +47,14 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
 
-      # A scoped, non-owner role so the AuditLog REVOKE in the migration
-      # (AC-14) actually restricts something, the same way it must in
-      # every real environment; see spec 0002's data model build.
+      # A scoped, non-owner role that is granted everything on every new
+      # table, so the AuditLog REVOKE in the migration (AC-14) has real
+      # grants to remove and the smoke test can tell if it stops running.
       - name: Create the app's scoped DB role
         run: |
           PGPASSWORD=hearme psql -h localhost -U hearme -d hearme \
-            -c "CREATE ROLE hearme_app WITH LOGIN PASSWORD 'ci_only';"
+            -c "CREATE ROLE hearme_app WITH LOGIN PASSWORD 'ci_only';" \
+            -c "ALTER DEFAULT PRIVILEGES FOR ROLE hearme IN SCHEMA public GRANT ALL ON TABLES TO hearme_app;"
 
       - name: Apply migrations
         run: pnpm exec prisma migrate deploy
@@ -63,5 +64,4 @@ jobs:
       # Prisma Migrate can't verify on its own, so this catches silent drift.
       - run: pnpm migrate:check
 
-      # Added once the test runner lands (/test): pnpm test, with this same
-      # Postgres service for integration tests, per spec 0001.
+      - run: pnpm test

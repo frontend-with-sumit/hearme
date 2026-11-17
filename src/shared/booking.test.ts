@@ -31,23 +31,28 @@ const INPUT: CreateBookingHoldInput = {
 /// exactly what the raw SQL would have done on each attempt.
 function fakeDb(behaviors: Array<() => Promise<unknown>>) {
   let call = 0;
+  const executeRaw = vi.fn();
   const availabilitySettings = {
     findFirst: vi.fn().mockResolvedValue({ bufferMinutes: 15 }),
   };
   const transaction = vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
     const behavior = behaviors[call];
     call += 1;
-    const tx = {
-      availabilitySettings,
-      $executeRaw: vi.fn(behavior),
-    };
+    executeRaw.mockImplementation(behavior);
+    const tx = { availabilitySettings, $executeRaw: executeRaw };
     return fn(tx);
   });
   return {
     db: { $transaction: transaction } as unknown as PrismaClient,
     transaction,
     availabilitySettings,
+    executeRaw,
   };
+}
+
+/// The interpolated values of a tagged-template $executeRaw call.
+function sqlValues(call: unknown[]): unknown[] {
+  return call.slice(1);
 }
 
 describe("createBookingHold", () => {
@@ -141,13 +146,92 @@ describe("createBookingHold", () => {
     expect(availabilitySettings.findFirst).toHaveBeenCalledTimes(1);
   });
 
-  it("defaults the buffer to 0 minutes when no AvailabilitySettings row exists", async () => {
-    const { db, availabilitySettings } = fakeDb([async () => undefined]);
-    availabilitySettings.findFirst.mockResolvedValue(null);
+  it("writes holdExpiresAt so the hold can expire", async () => {
+    const { db, executeRaw } = fakeDb([async () => undefined]);
+
+    await createBookingHold(INPUT, db);
+
+    expect(sqlValues(executeRaw.mock.calls[0] ?? [])).toContain(
+      INPUT.holdExpiresAt,
+    );
+  });
+
+  it("splits the buffer across both sides, so the gap between bookings is bufferMinutes", async () => {
+    const { db, executeRaw, availabilitySettings } = fakeDb([
+      async () => undefined,
+    ]);
+    availabilitySettings.findFirst.mockResolvedValue({ bufferMinutes: 20 });
+
+    await createBookingHold(INPUT, db);
+
+    const values = sqlValues(executeRaw.mock.calls[0] ?? []);
+    expect(values).toContainEqual(new Date("2027-01-01T09:50:00.000Z"));
+    expect(values).toContainEqual(new Date("2027-01-01T10:40:00.000Z"));
+  });
+
+  it("retries Prisma's P2034 transaction conflict like a serialization failure", async () => {
+    const { db, transaction } = fakeDb([
+      async () => {
+        throw pgError("P2034");
+      },
+      async () => undefined,
+    ]);
 
     const result = await createBookingHold(INPUT, db);
 
     expect(result.ok).toBe(true);
+    expect(transaction).toHaveBeenCalledTimes(2);
+  });
+
+  it("reads the Postgres code from error.meta.code on a P2010 raw query failure", async () => {
+    const { db } = fakeDb([
+      async () => {
+        throw Object.assign(new Error("raw query failed"), {
+          code: "P2010",
+          meta: { code: "23P01" },
+        });
+      },
+    ]);
+
+    const result = await createBookingHold(INPUT, db);
+
+    expect(result).toEqual({ ok: false, error: { kind: "SLOT_TAKEN" } });
+  });
+
+  it("fails loudly when no AvailabilitySettings row exists, instead of using a 0 minute buffer", async () => {
+    const { db, availabilitySettings } = fakeDb([async () => undefined]);
+    availabilitySettings.findFirst.mockResolvedValue(null);
+
+    await expect(createBookingHold(INPUT, db)).rejects.toThrow(
+      /AvailabilitySettings/,
+    );
+  });
+
+  it("rejects a range that does not start before it ends, without touching the database", async () => {
+    const { db, transaction } = fakeDb([async () => undefined]);
+
+    const result = await createBookingHold(
+      { ...INPUT, startsAt: INPUT.endsAt, endsAt: INPUT.startsAt },
+      db,
+    );
+
+    expect(result).toEqual({ ok: false, error: { kind: "INVALID_RANGE" } });
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it("reads the code from the real driver adapter error shape (meta.driverAdapterError.cause.originalCode)", async () => {
+    const { db } = fakeDb([
+      async () => {
+        throw Object.assign(new Error("raw query failed"), {
+          code: "P2010",
+          meta: { driverAdapterError: { cause: { originalCode: "23P01" } } },
+        });
+      },
+    ]);
+
+    const result = await createBookingHold(INPUT, db);
+
+    expect(result).toEqual({ ok: false, error: { kind: "SLOT_TAKEN" } });
   });
 });
 
@@ -159,7 +243,7 @@ describe("rescheduleBooking", () => {
   };
 
   it("succeeds on the first attempt", async () => {
-    const { db, transaction } = fakeDb([async () => undefined]);
+    const { db, transaction } = fakeDb([async () => 1]);
 
     const result = await rescheduleBooking(RESCHEDULE_INPUT, db);
 
@@ -199,5 +283,32 @@ describe("rescheduleBooking", () => {
 
     expect(result).toEqual({ ok: false, error: { kind: "SLOT_TAKEN" } });
     expect(transaction).toHaveBeenCalledTimes(4);
+  });
+
+  it("rejects an inverted range as INVALID_RANGE", async () => {
+    const { db, transaction } = fakeDb([async () => 1]);
+
+    const result = await rescheduleBooking(
+      {
+        ...RESCHEDULE_INPUT,
+        startsAt: RESCHEDULE_INPUT.endsAt,
+        endsAt: RESCHEDULE_INPUT.startsAt,
+      },
+      db,
+    );
+
+    expect(result).toEqual({ ok: false, error: { kind: "INVALID_RANGE" } });
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it("returns NOT_RESCHEDULABLE when no HELD or CONFIRMED booking matches the id", async () => {
+    const { db } = fakeDb([async () => 0]);
+
+    const result = await rescheduleBooking(RESCHEDULE_INPUT, db);
+
+    expect(result).toEqual({
+      ok: false,
+      error: { kind: "NOT_RESCHEDULABLE" },
+    });
   });
 });

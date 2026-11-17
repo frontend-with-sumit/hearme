@@ -5,6 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 /// and that the keyring lookup keys line up with CURRENT_KEK_VERSION /
 /// CURRENT_HMAC_KEY_VERSION.
 
+const KEY_A = Buffer.alloc(32, 1).toString("base64");
+const KEY_B = Buffer.alloc(32, 2).toString("base64");
+const KEY_C = Buffer.alloc(32, 3).toString("base64");
+
 const ORIGINAL_ENV = { ...process.env };
 const TRACKED_KEYS = [
   "DATABASE_URL",
@@ -29,8 +33,8 @@ function setValidEnv() {
   process.env.DIRECT_URL = "postgres://user:pass@localhost:5432/db";
   process.env.CURRENT_KEK_VERSION = "v1";
   process.env.CURRENT_HMAC_KEY_VERSION = "v1";
-  process.env.KEK_V1 = "a".repeat(44);
-  process.env.HMAC_KEY_V1 = "b".repeat(44);
+  process.env.KEK_V1 = KEY_A;
+  process.env.HMAC_KEY_V1 = KEY_B;
 }
 
 async function importFreshEnv() {
@@ -59,6 +63,33 @@ describe("getEnv", () => {
     expect(env.currentHmacKeyVersion).toBe("v1");
     expect(env.kekKeyring.v1).toBe(process.env.KEK_V1);
     expect(env.hmacKeyring.v1).toBe(process.env.HMAC_KEY_V1);
+  });
+
+  it("rejects a KEK that does not decode to 32 bytes, naming the variable but not the value", async () => {
+    setValidEnv();
+    process.env.KEK_V1 = Buffer.alloc(16, 1).toString("base64");
+    const { getEnv } = await importFreshEnv();
+
+    expect(() => getEnv()).toThrow(
+      /KEK_V1 must be base64 that decodes to 32 bytes/,
+    );
+    expect(() => getEnv()).not.toThrow(new RegExp(process.env.KEK_V1 ?? "x"));
+  });
+
+  it("rejects an HMAC key that is not base64", async () => {
+    setValidEnv();
+    process.env.HMAC_KEY_V1 = "not base64 !!";
+    const { getEnv } = await importFreshEnv();
+
+    expect(() => getEnv()).toThrow(/HMAC_KEY_V1 must be base64/);
+  });
+
+  it("accepts an uppercase CURRENT_KEK_VERSION and matches it to the lowercase keyring", async () => {
+    setValidEnv();
+    process.env.CURRENT_KEK_VERSION = "V1";
+    const { getEnv } = await importFreshEnv();
+
+    expect(getEnv().currentKekVersion).toBe("v1");
   });
 
   it("throws when DATABASE_URL is missing", async () => {
@@ -95,7 +126,7 @@ describe("getEnv", () => {
 
   it("collects multiple KEK versions into one keyring, each keyed by its own lowercase version", async () => {
     setValidEnv();
-    process.env.KEK_V2 = "c".repeat(44);
+    process.env.KEK_V2 = KEY_C;
     const { getEnv } = await importFreshEnv();
 
     const env = getEnv();

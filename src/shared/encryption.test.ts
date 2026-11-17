@@ -124,6 +124,47 @@ describe("redactWebhookPayload", () => {
     });
   });
 
+  it("strips Razorpay's contact, notes, vpa and card at any nesting depth", () => {
+    const redacted = redactWebhookPayload({
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_1",
+            amount: 15000,
+            status: "captured",
+            email: "jane@example.com",
+            contact: "+919999999999",
+            vpa: "jane@upi",
+            card: { last4: "1111", name: "Jane" },
+            notes: { reason: "feeling low" },
+            tags: [{ id: "t1", customer_name: "Jane" }],
+          },
+        },
+      },
+    });
+
+    expect(redacted).toEqual({
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_1",
+            amount: 15000,
+            status: "captured",
+            tags: [{ id: "t1" }],
+          },
+        },
+      },
+    });
+  });
+
+  it("keeps keys that only contain a personal word inside a longer word", () => {
+    expect(
+      redactWebhookPayload({ username: "u1", cardinality: 2, renamed: true }),
+    ).toEqual({ username: "u1", cardinality: 2, renamed: true });
+  });
+
   it("returns an empty object unchanged", () => {
     expect(redactWebhookPayload({})).toEqual({});
   });
