@@ -69,7 +69,7 @@ Core entities (Booking, Payment, Refund, WebhookEvent, Job, GoogleConnection, Em
   - [x] Seed data and the shared encryption envelope helper (AC-3, 4, 5, 9)
   - [x] Booking create/reschedule transaction logic and the two independent erasure functions (AC-2, 7, 11)
   - [x] CI migration smoke test and generated client verification (AC-1, 2, 14)
-- [ ] Verify it: `/check verify data model`
+- [x] Verify it: `/check verify data model`
 - [ ] Test it: `/test data model`
 - [ ] Review it (fresh model): `/check review data model`
 - [ ] Document it: `/document data model`
