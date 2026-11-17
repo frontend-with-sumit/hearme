@@ -8,6 +8,23 @@ on:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hearme
+          POSTGRES_PASSWORD: hearme
+          POSTGRES_DB: hearme
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://hearme:hearme@localhost:5432/hearme
+      DIRECT_URL: postgresql://hearme:hearme@localhost:5432/hearme
     steps:
       - uses: actions/checkout@v4
 
@@ -25,8 +42,21 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
 
-      # Added once the test runner lands (/test): pnpm test, with a Postgres
-      # service for integration tests, per spec 0001.
-      # Added once Prisma lands (data model spec, scope item 3): a migration
-      # dry run (`prisma migrate diff` against the target DB) as a required
-      # check, per spec 0001.
+      # A scoped, non-owner role so the AuditLog REVOKE in the migration
+      # (AC-14) actually restricts something, the same way it must in
+      # every real environment; see spec 0002's data model build.
+      - name: Create the app's scoped DB role
+        run: |
+          PGPASSWORD=hearme psql -h localhost -U hearme -d hearme \
+            -c "CREATE ROLE hearme_app WITH LOGIN PASSWORD 'ci_only';"
+
+      - name: Apply migrations
+        run: pnpm exec prisma migrate deploy
+
+      # Migration smoke test (spec 0002, Build plan task 10): the exclusion
+      # constraint and the AuditLog hardening are hand-written SQL that
+      # Prisma Migrate can't verify on its own, so this catches silent drift.
+      - run: pnpm migrate:check
+
+      # Added once the test runner lands (/test): pnpm test, with this same
+      # Postgres service for integration tests, per spec 0001.
