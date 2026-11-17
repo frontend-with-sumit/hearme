@@ -71,7 +71,7 @@ Core entities (Booking, Payment, Refund, WebhookEvent, Job, GoogleConnection, Em
   - [x] CI migration smoke test and generated client verification (AC-1, 2, 14)
 - [x] Verify it: `/check verify data model`
 - [x] Test it: `/test data model`
-- [ ] Review it (fresh model): `/check review data model`
+- [x] Review it (fresh model): `/check review data model`
 - [ ] Document it: `/document data model`
 Spec [0002](../specs/0002-data-model/index.md) · code in `prisma/`, `src/shared/`
 
