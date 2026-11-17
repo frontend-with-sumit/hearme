@@ -72,7 +72,7 @@ Core entities (Booking, Payment, Refund, WebhookEvent, Job, GoogleConnection, Em
 - [x] Verify it: `/check verify data model`
 - [x] Test it: `/test data model`
 - [x] Review it (fresh model): `/check review data model`
-- [ ] Document it: `/document data model`
+- [x] Document it: `/document data model`
 Spec [0002](../specs/0002-data-model/index.md) · code in `prisma/`, `src/shared/`
 
 ### 4. Design system & UI foundation · needs a decision
