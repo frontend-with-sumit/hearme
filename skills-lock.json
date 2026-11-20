@@ -103,6 +103,34 @@
       "skillPath": "skills-legacy/sentry-sdk-setup/SKILL.md",
       "computedHash": "8f8e683976b5a99efaf9c0b11715013319e2ef2b9694ae5d6c517ae2ceedbc41"
     },
+    "shadcn": {
+      "source": "shadcn-ui/ui",
+      "commit": "f50887ae68d0fdcbfbe86b57be08af94a4c88a68",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "388962d16c7a4f13aaeee0d8f128e50a87df8553d42ef7988c39c0e1c74a40e8"
+    },
+    "storybook-init": {
+      "source": "storybookjs/storybook",
+      "commit": "eebe6352750ac0dcad1a5a8080944723114e4af5",
+      "sourceType": "github",
+      "skillPath": "code/lib/claude-plugin/skills/storybook-init/SKILL.md",
+      "computedHash": "5f69de886d5f079f02d3f111b8fe91f2497110d127d190c47f19ad235feaa42a"
+    },
+    "tailwind-4-docs": {
+      "source": "Lombiq/Tailwind-Agent-Skills",
+      "commit": "634ec184c36e495fae1d8cf7975df7e6969e3a89",
+      "sourceType": "github",
+      "skillPath": "skills/tailwind-4-docs/SKILL.md",
+      "computedHash": "263961b82698e3defdb26dd6a1b7328044517e67a3bbe91c1b33bb2a4273f4ee"
+    },
+    "tailwind-design-system": {
+      "source": "wshobson/agents",
+      "commit": "42203085cfc5736204bf0f6d436dff7e1da0bf3f",
+      "sourceType": "github",
+      "skillPath": "plugins/frontend-mobile-development/skills/tailwind-design-system/SKILL.md",
+      "computedHash": "c807f0c9619e8c389879f55846c2e395956f1073ab6d01a93fbb30b340015ab1"
+    },
     "upstash-ratelimit-js": {
       "source": "upstash/skills",
       "sourceType": "github",
