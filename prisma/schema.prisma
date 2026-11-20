@@ -1,0 +1,376 @@
+// HearMe data model — spec 0002 (docs/specs/0002-data-model/index.md)
+// Foundation migration: every entity the current scope needs, per-field
+// envelope encryption for personal data, a DB-level no-double-booking
+// exclusion constraint, and append-only, DB-hardened audit logging.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum BookingStatus {
+  HELD
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  CREATED
+  CAPTURED
+  FAILED
+}
+
+enum RefundReason {
+  CLIENT_CANCELLED
+  ADMIN_CANCELLED
+  AUTO_EXPIRED_SLOT
+  HELP_RESOURCES_SENT
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+enum WebhookProvider {
+  RAZORPAY
+  GOOGLE
+}
+
+enum EmailType {
+  CONFIRMATION
+  REMINDER_1H
+  REMINDER_24H
+  MOVED
+  CANCELLED
+  HELP_RESOURCES
+}
+
+enum EmailDeliveryStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+enum AuditAction {
+  LOGIN
+  LOGIN_FAILED
+  NOTE_REVEALED
+  PHONE_REVEALED
+  REFUND_ISSUED
+  SESSION_TYPE_CHANGED
+  POLICY_CHANGED
+  AVAILABILITY_CHANGED
+  EXPORT
+  GOOGLE_CONNECTED
+  GOOGLE_DISCONNECTED
+  SIGN_OUT_ALL
+  BOOKING_ERASED
+}
+
+enum AuditActorType {
+  ADMIN
+  CLIENT
+  SYSTEM
+}
+
+enum AdminRole {
+  OWNER
+  ASSISTANT
+}
+
+enum GoogleConnectionStatus {
+  CONNECTED
+  NEEDS_RECONNECT
+  DISCONNECTED
+}
+
+enum CalendarSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+enum CancelledBy {
+  CLIENT
+  ADMIN
+  SYSTEM
+}
+
+enum BookingOutcome {
+  ATTENDED
+  CLIENT_NO_SHOW
+  ENDED_EARLY_SAFETY
+}
+
+// ---------- Standalone / singleton models ----------
+
+model SessionType {
+  id              String  @id @default(uuid())
+  name            String
+  durationMinutes Int
+  priceInPaise    Int
+  gstRatePercent  Int
+  isBookable      Boolean @default(true)
+  sortOrder       Int     @default(0)
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  bookings Booking[]
+}
+
+/// Singleton row: exactly one AvailabilitySettings record, enforced in the app layer.
+model AvailabilitySettings {
+  id                String   @id @default(uuid())
+  weeklyHours       Json
+  blockedDates      Json
+  bufferMinutes     Int
+  minNoticeMinutes  Int
+  bookingWindowDays Int
+  maxPerDay         Int
+  holdLengthMinutes Int
+  busyCalendarIds   String[]
+
+  updatedAt DateTime @updatedAt @db.Timestamptz
+}
+
+/// Versioned rows; a Booking snapshots the policy in force at hold time via cancellationPolicyId.
+model CancellationPolicy {
+  id            String   @id @default(uuid())
+  effectiveFrom DateTime @db.Timestamptz
+  rules         Json
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  bookings Booking[]
+}
+
+/// Singleton row: exactly one GoogleConnection record, enforced in the app layer.
+model GoogleConnection {
+  id               String                 @id @default(uuid())
+  refreshToken     Json
+  scopes           String[]
+  calendarId       String
+  status           GoogleConnectionStatus
+  lastSyncedAt     DateTime?              @db.Timestamptz
+  lastErrorAt      DateTime?              @db.Timestamptz
+  lastErrorMessage String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+}
+
+model AdminUser {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String?
+  totpSecret       Json?
+  totpLastUsedStep Int?
+  role             AdminRole
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  adminSessions      AdminSession[]
+  passkeyCredentials PasskeyCredential[]
+  auditLogs          AuditLog[]
+}
+
+model AdminSession {
+  id          String    @id @default(uuid())
+  adminUserId String
+  userAgent   String?
+  ipHash      String?
+  expiresAt   DateTime  @db.Timestamptz
+  lastSeenAt  DateTime  @db.Timestamptz
+  revokedAt   DateTime? @db.Timestamptz
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id])
+
+  @@index([adminUserId])
+}
+
+model PasskeyCredential {
+  id           String    @id @default(uuid())
+  adminUserId  String
+  credentialId String    @unique
+  publicKey    String
+  signCount    Int       @default(0)
+  transports   String[]
+  lastUsedAt   DateTime? @db.Timestamptz
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id])
+
+  @@index([adminUserId])
+}
+
+// ---------- Booking and its direct children ----------
+
+model Booking {
+  id String @id @default(uuid())
+
+  /// The real session time. Written only via raw SQL (Unsupported column).
+  timeRange    Unsupported("tstzrange")
+  /// timeRange padded by AvailabilitySettings.bufferMinutes as of hold time;
+  /// the no-double-booking exclusion constraint runs on this column.
+  blockedRange Unsupported("tstzrange")
+
+  status               BookingStatus
+  sessionTypeId        String
+  cancellationPolicyId String
+  priceInPaise         Int
+  gstRatePercent       Int
+
+  // Per-field envelope-encrypted personal data; see src/shared/encryption.
+  clientName  Json?
+  clientEmail Json?
+  clientPhone Json?
+  note        Json?
+
+  /// HMAC(email, HMAC_KEY_Vn); lets admin search by email without decrypting every row.
+  emailLookupHmac String?
+
+  timeZone           String
+  consentVersion     String
+  /// Opaque, unique token for the stable /j/<token> join link; never derived from id.
+  joinToken          String @unique
+  /// Incrementing this invalidates every previously issued signed manage/reschedule link.
+  manageTokenVersion Int    @default(0)
+
+  calendarEventId    String?
+  meetLink           String?
+  calendarSyncStatus CalendarSyncStatus @default(PENDING)
+  calendarSyncError  String?
+  lastSyncAttemptAt  DateTime?          @db.Timestamptz
+
+  holdExpiresAt DateTime?       @db.Timestamptz
+  completedAt   DateTime?       @db.Timestamptz
+  cancelledAt   DateTime?       @db.Timestamptz
+  cancelledBy   CancelledBy?
+  outcome       BookingOutcome?
+
+  rescheduleCount   Int                       @default(0)
+  /// The range before the most recent reschedule (MOVED email, History).
+  previousTimeRange Unsupported("tstzrange")?
+
+  /// Contact-details erasure ("delete my details" or the 90-day job): nulls
+  /// clientName/clientEmail/clientPhone/emailLookupHmac independently of noteErasedAt.
+  erasedAt     DateTime? @db.Timestamptz
+  /// Note erasure (the 7-day job, fires earlier and independently): nulls note only.
+  noteErasedAt DateTime? @db.Timestamptz
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  sessionType        SessionType        @relation(fields: [sessionTypeId], references: [id])
+  cancellationPolicy CancellationPolicy @relation(fields: [cancellationPolicyId], references: [id])
+  payments           Payment[]
+  emailLogs          EmailLog[]
+
+  @@index([emailLookupHmac])
+  @@index([sessionTypeId])
+  @@index([cancellationPolicyId])
+  @@index([status])
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  bookingId         String
+  razorpayOrderId   String        @unique
+  razorpayPaymentId String?       @unique
+  amountInPaise     Int
+  status            PaymentStatus
+  idempotencyKey    String        @unique
+  failureReason     String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  booking Booking  @relation(fields: [bookingId], references: [id])
+  refunds Refund[]
+
+  @@index([bookingId])
+}
+
+model Refund {
+  id               String       @id @default(uuid())
+  paymentId        String
+  razorpayRefundId String?
+  amountInPaise    Int
+  reason           RefundReason
+  status           RefundStatus
+  idempotencyKey   String       @unique
+  failureReason    String?
+
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+  processedAt DateTime? @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @db.Timestamptz
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+}
+
+/// Dedup store for inbound webhooks; no FK, payload has every personal field
+/// stripped before it is written (names, emails, phones — ids/amounts/status only).
+model WebhookEvent {
+  id              String          @id @default(uuid())
+  provider        WebhookProvider
+  providerEventId String
+  eventType       String
+  payload         Json
+  receivedAt      DateTime        @db.Timestamptz
+  processedAt     DateTime?       @db.Timestamptz
+
+  @@unique([provider, providerEventId])
+}
+
+model EmailLog {
+  id                String              @id @default(uuid())
+  bookingId         String
+  emailType         EmailType
+  /// Derived from bookingId + emailType + rescheduleCount so a reschedule
+  /// doesn't suppress its reminder as a false duplicate of the pre-reschedule one.
+  idempotencyKey    String              @unique
+  status            EmailDeliveryStatus @default(QUEUED)
+  sentAt            DateTime?           @db.Timestamptz
+  providerMessageId String?
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+}
+
+/// Append only, kept forever; never updated or deleted by the app, and the
+/// connecting DB role has UPDATE/DELETE revoked at the database level (AC-14).
+model AuditLog {
+  id               String         @id @default(uuid())
+  actorAdminUserId String?
+  actorType        AuditActorType
+  action           AuditAction
+  targetType       String
+  targetId         String
+  /// Never client personal data — enforced by lint/review rule, see spec 0002.
+  metadata         Json?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  actorAdminUser AdminUser? @relation(fields: [actorAdminUserId], references: [id])
+
+  @@index([actorAdminUserId])
+  @@index([targetType, targetId])
+}

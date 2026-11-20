@@ -8,6 +8,23 @@ on:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hearme
+          POSTGRES_PASSWORD: hearme
+          POSTGRES_DB: hearme
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://hearme:hearme@localhost:5432/hearme
+      DIRECT_URL: postgresql://hearme:hearme@localhost:5432/hearme
     steps:
       - uses: actions/checkout@v4
 
@@ -20,13 +37,31 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # src/generated/prisma is gitignored (it's generated code), so a fresh
+      # checkout has no Prisma Client until this runs; lint/typecheck/build
+      # all import from it.
+      - run: pnpm exec prisma generate
+
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
       - run: pnpm build
 
-      # Added once the test runner lands (/test): pnpm test, with a Postgres
-      # service for integration tests, per spec 0001.
-      # Added once Prisma lands (data model spec, scope item 3): a migration
-      # dry run (`prisma migrate diff` against the target DB) as a required
-      # check, per spec 0001.
+      # A scoped, non-owner role that is granted everything on every new
+      # table, so the AuditLog REVOKE in the migration (AC-14) has real
+      # grants to remove and the smoke test can tell if it stops running.
+      - name: Create the app's scoped DB role
+        run: |
+          PGPASSWORD=hearme psql -h localhost -U hearme -d hearme \
+            -c "CREATE ROLE hearme_app WITH LOGIN PASSWORD 'ci_only';" \
+            -c "ALTER DEFAULT PRIVILEGES FOR ROLE hearme IN SCHEMA public GRANT ALL ON TABLES TO hearme_app;"
+
+      - name: Apply migrations
+        run: pnpm exec prisma migrate deploy
+
+      # Migration smoke test (spec 0002, Build plan task 10): the exclusion
+      # constraint and the AuditLog hardening are hand-written SQL that
+      # Prisma Migrate can't verify on its own, so this catches silent drift.
+      - run: pnpm migrate:check
+
+      - run: pnpm test

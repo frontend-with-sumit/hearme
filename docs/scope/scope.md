@@ -13,7 +13,7 @@ _These are recommendations to keep the build orderly, not requirements. Skip any
 |---|---------|-------|--------|
 | 1 | Stack & architecture | Foundation | done |
 | 2 | Coding standards & tooling | Foundation | done |
-| 3 | Data model | Foundation | planned |
+| 3 | Data model | Foundation | in-progress |
 | 4 | Design system & UI foundation | Foundation | planned |
 | 5 | Core booking thread | Slice 1 | planned |
 | 6 | Service terms & legal content | Slice 2 | planned |
@@ -60,10 +60,20 @@ Capture conventions and install lint, format, pre-commit, and CI from the real s
 - [x] Install lint, format, pre-commit, CI: `/develop tooling` (code in `.` project root)
 - [x] Verify it: `/check verify coding standards & tooling`
 
-### 3. Data model · needs a decision
+### 3. Data model
 Core entities (Booking, Payment, Refund, WebhookEvent, Job, GoogleConnection, EmailLog, AuditLog, Settings), the no double booking exclusion constraint, and the encrypted PII envelope, so every later feature has somewhere real to read and write.
 **Done when:** entities, relationships, and the overlap exclusion constraint are migrated and live, with generated types, without needing a breaking migration for later slices.
-- [ ] Design it (spec): `/architect data model`
+- [x] Design it (spec): `/architect data model`
+- [x] Build it: `/develop data model`
+  - [x] Schema & migration: every enum and entity, the buffer-aware no-double-booking exclusion constraint, and the hardened (DB-revoked) audit log (AC-1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 13, 14)
+  - [x] Seed data and the shared encryption envelope helper (AC-3, 4, 5, 9)
+  - [x] Booking create/reschedule transaction logic and the two independent erasure functions (AC-2, 7, 11)
+  - [x] CI migration smoke test and generated client verification (AC-1, 2, 14)
+- [x] Verify it: `/check verify data model`
+- [x] Test it: `/test data model`
+- [x] Review it (fresh model): `/check review data model`
+- [x] Document it: `/document data model`
+Spec [0002](../specs/0002-data-model/index.md) · code in `prisma/`, `src/shared/`
 
 ### 4. Design system & UI foundation · needs a decision
 Turn the given tokens (Newsreader/Figtree, the colour and shape system, the Figma file) into `design.md` and base, accessible components so every screen feels like one product.
