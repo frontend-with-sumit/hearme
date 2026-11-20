@@ -1,26 +1,305 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
+/*
+ * HearMe design tokens (spec 0003). Colour values live once, as hex, in the
+ * :root (light) and .dark blocks below. `design.md` documents them and a
+ * Vitest test keeps the two in step. Never write a raw hex colour anywhere
+ * else under src/ (an ESLint rule enforces it).
+ */
+
+/* Maps token names to Tailwind utilities (bg-primary, text-muted-foreground). */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-inactive: var(--text-inactive);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-divider: var(--divider);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-progress-track: var(--progress-track);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-strong: var(--warning-strong);
+  --color-success-soft: var(--success-soft);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-dot: var(--success-dot);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-foreground: var(--neutral-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-card: var(--sidebar-card);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-label: var(--sidebar-label);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-brand: var(--sidebar-brand);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+
+  /* The next/font variables are set on <html> by src/app/fonts.ts. */
+  --font-sans: var(--font-figtree), system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Radii and type roles. Sizes, weights and tracking are measured from Figma. */
+@theme {
+  --radius-checkbox: 5px;
+  --radius-alert: 12px;
+  --radius-control: 14px;
+  --radius-card: 18px;
+  --radius-calendar: 20px;
+  --radius-feature: 22px;
+
+  /* Display scales fluidly: 44px at 390px wide, 76px at 1440px. */
+  --text-display: clamp(2.75rem, 1.6rem + 4.7vw, 4.75rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 400;
+
+  --text-heading-1: 2rem;
+  --text-heading-1--line-height: 1.1;
+  --text-heading-1--font-weight: 400;
+
+  --text-quote: 1.3125rem;
+  --text-quote--line-height: 1.45;
+  --text-quote--font-weight: 400;
+
+  --text-wordmark: 1.375rem;
+  --text-wordmark--font-weight: 400;
+  --text-wordmark-admin: 1.625rem;
+  --text-wordmark-admin--font-weight: 400;
+
+  --text-eyebrow: 0.8125rem;
+  --text-eyebrow--letter-spacing: 0.09em;
+  --text-eyebrow--font-weight: 600;
+
+  --text-lead: 1.25rem;
+  --text-lead--line-height: 1.6;
+  --text-lead--font-weight: 400;
+
+  --text-label: 0.9375rem;
+  --text-label--font-weight: 600;
+
+  --text-input-text: 1rem;
+  --text-input-text--line-height: 1.45;
+  --text-input-text--font-weight: 500;
+
+  --text-body-small: 0.875rem;
+  --text-body-small--line-height: 1.5;
+  --text-body-small--font-weight: 400;
+
+  --text-helper: 0.8125rem;
+  --text-helper--line-height: 1.45;
+  --text-helper--font-weight: 400;
+
+  --text-button: 1rem;
+  --text-button--font-weight: 600;
+  --text-button-small: 0.875rem;
+  --text-button-small--font-weight: 600;
+
+  --text-pill: 0.875rem;
+  --text-pill--font-weight: 500;
+
+  --text-badge: 0.75rem;
+  --text-badge--font-weight: 600;
+
+  --text-card-title: 1.125rem;
+  --text-card-title--font-weight: 700;
+
+  /* Accordion question: size from the Figma spec text, weight and line height
+     are TBD (Figma node 9:205) and are not invented here. */
+  --text-accordion-question: 1.125rem;
+}
+
+/*
+ * Extends the pointer area of a control to at least 44 by 44 CSS pixels
+ * without changing how big it looks (spec 0003, AC-8). Use it on any control
+ * whose visible size is smaller. Not for controls inside a clipping container
+ * unless the container has room for the extension.
+ */
+@utility touch-target {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
   }
 }
 
-body {
-  background: var(--background);
+:root {
+  --background: #f1f3ee;
+  --foreground: #1d2927;
+  --card: #ffffff;
+  --card-foreground: #1d2927;
+  --popover: #ffffff;
+  --popover-foreground: #1d2927;
+  --muted-foreground: #5b6864;
+  --text-inactive: #606c67;
+  --primary: #355e52;
+  --primary-foreground: #ffffff;
+  --primary-hover: #2d5045;
+  --primary-active: #26443a;
+  --secondary: #e3e9e1;
+  --secondary-foreground: #2c4a41;
+  --muted: #e3e9e1;
+  --accent: #d9e2d6;
+  --accent-foreground: #4a5e57;
+  --border: #e1e6df;
+  --divider: #edf0eb;
+  --input: #7f8f87;
+  --ring: #355e52;
+  --progress-track: #d5dcd3;
+  --destructive: #8a2e25;
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #f6e1de;
+  --warning: #f7e8cc;
+  --warning-foreground: #4f4430;
+  --warning-strong: #6b4b12;
+  --success-soft: #e0eee6;
+  --success-foreground: #1f5a43;
+  --success-dot: #6fcf97;
+  --neutral-soft: #e9ece8;
+  --neutral-foreground: #3e4a47;
+  --sidebar: #1e2b29;
+  --sidebar-card: #26352f;
+  --sidebar-accent: #2f403c;
+  --sidebar-foreground: #c9d5d0;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-muted: #a5b6b0;
+  --sidebar-label: #93a7a0;
+  --sidebar-primary: #a9cbbe;
+  --sidebar-primary-foreground: #1e2b29;
+  --sidebar-brand: #a9cbbe;
+  --sidebar-ring: #a9cbbe;
+  --sidebar-border: #2f403c;
+  --shadow-float: 0 24px 48px -24px rgba(28, 41, 38, 0.28);
+}
+
+.dark {
+  --background: #172120;
+  --foreground: #e8eee9;
+  --card: #1e2b29;
+  --card-foreground: #e8eee9;
+  --popover: #1e2b29;
+  --popover-foreground: #e8eee9;
+  --muted-foreground: #a5b6b0;
+  --text-inactive: #8fa09a;
+  --primary: #a9cbbe;
+  --primary-foreground: #172120;
+  --primary-hover: #b8d5ca;
+  --primary-active: #c6dfd5;
+  --secondary: #26352f;
+  --secondary-foreground: #c9d5d0;
+  --muted: #26352f;
+  --accent: #2f403c;
+  --accent-foreground: #c9d5d0;
+  --border: #2f403c;
+  --divider: #26352f;
+  --input: #6f8a80;
+  --ring: #a9cbbe;
+  --progress-track: #2f403c;
+  --destructive: #f5b8b0;
+  --destructive-foreground: #172120;
+  --destructive-soft: #3d2420;
+  --warning: #3a3020;
+  --warning-foreground: #f0d49a;
+  --warning-strong: #f0d49a;
+  --success-soft: #1f3a2e;
+  --success-foreground: #a9dcc0;
+  --success-dot: #6fcf97;
+  --neutral-soft: #2f403c;
+  --neutral-foreground: #c9d5d0;
+  --sidebar: #1e2b29;
+  --sidebar-card: #26352f;
+  --sidebar-accent: #2f403c;
+  --sidebar-foreground: #c9d5d0;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-muted: #a5b6b0;
+  --sidebar-label: #93a7a0;
+  --sidebar-primary: #a9cbbe;
+  --sidebar-primary-foreground: #1e2b29;
+  --sidebar-brand: #a9cbbe;
+  --sidebar-ring: #a9cbbe;
+  --sidebar-border: #2f403c;
+  --shadow-float: none;
+}
+
+/*
+ * The admin sidebar is a dark surface in both themes. Inside it the normal
+ * ring, text and border tokens are swapped for the sidebar's own values,
+ * because the light ring (#355e52) is only 2.0:1 on the sidebar fill.
+ */
+[data-surface="sidebar"] {
+  --ring: var(--sidebar-ring);
+  --foreground: var(--sidebar-foreground);
+  --muted-foreground: var(--sidebar-muted);
+  --border: var(--sidebar-border);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+
+  /* One focus style for everything: a 2px outline with a 2px offset. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Forced colors: keep the 2px width and use a system colour. */
+  @media (forced-colors: active) {
+    :focus-visible {
+      outline: 2px solid Highlight;
+    }
+  }
+
+  /* Nothing moves for people who ask for less motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
