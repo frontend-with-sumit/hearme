@@ -14,7 +14,7 @@ _These are recommendations to keep the build orderly, not requirements. Skip any
 | 1 | Stack & architecture | Foundation | done |
 | 2 | Coding standards & tooling | Foundation | done |
 | 3 | Data model | Foundation | in-progress |
-| 4 | Design system & UI foundation | Foundation | planned |
+| 4 | Design system & UI foundation | Foundation | in-progress |
 | 5 | Core booking thread | Slice 1 | planned |
 | 6 | Service terms & legal content | Slice 2 | planned |
 | 9 | Booking step 1: Session | Slice 2 | planned |
@@ -75,10 +75,21 @@ Core entities (Booking, Payment, Refund, WebhookEvent, Job, GoogleConnection, Em
 - [x] Document it: `/document data model`
 Spec [0002](../specs/0002-data-model/index.md) · code in `prisma/`, `src/shared/`
 
-### 4. Design system & UI foundation · needs a decision
+### 4. Design system & UI foundation
 Turn the given tokens (Newsreader/Figtree, the colour and shape system, the Figma file) into `design.md` and base, accessible components so every screen feels like one product.
 **Done when:** `design.md` covers type/colour/spacing/components, base components meet WCAG 2.2 AA (focus, keyboard, 44px touch targets), and the Figma file is recorded as the source of truth.
-- [ ] Design it (spec): `/architect design system & UI foundation`
+- [x] Design it (spec): `/architect design system & UI foundation`
+- [ ] Build it: `/develop design system & UI foundation`
+  - [ ] Stack, fonts, tokens and theme: shadcn and Storybook installed, local fonts, light and dark tokens, theme provider, layout with Skip link and main (AC-1, 2, 5, 16)
+  - [ ] Tracer: Button with stories, axe tests in CI and the app level Playwright checks wired (AC-7, 8, 9, 13, 14)
+  - [ ] Guards: contrast test from the pairs table, raw hex ESLint rule, one CSS file check (AC-1, 4)
+  - [ ] Primitives: form, display and overlay components with all states (AC-6, 7, 8, 9, 10)
+  - [ ] Icons, `design.md` and final checks: Lucide mapping, token sync test, reflow, motion, privacy and forced colors checks (AC-3, 10, 11, 12, 13, 14, 15)
+- [ ] Verify it: `/check verify design system & UI foundation`
+- [ ] Test it: `/test design system & UI foundation`
+- [ ] Review it (fresh model): `/check review design system & UI foundation`
+- [ ] Document it: `/document design system & UI foundation`
+Spec [0003](../specs/0003-design-system-ui-foundation/index.md) · code in `src/components/ui/`, `src/app/`
 
 ## Slice 1: Core booking thread
 
