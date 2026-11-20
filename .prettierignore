@@ -9,3 +9,6 @@ pnpm-lock.yaml
 # Curated prose, not code
 docs/
 *.md
+
+# Written by the gitleaks CI action into the workspace
+results.sarif

@@ -1,2 +1,10 @@
 npx lint-staged
 pnpm typecheck
+
+# Secret scan on staged changes. CI runs the full history scan, so a missing
+# local install warns instead of blocking the commit.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact
+else
+  echo "warning: gitleaks not installed, skipping local secret scan (brew install gitleaks)"
+fi
