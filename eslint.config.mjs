@@ -17,6 +17,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "storybook-static/**",
     // Vendored Agent Skills content, not ours to lint/format:
     ".agents/skills/**",
     ".claude/skills/**",

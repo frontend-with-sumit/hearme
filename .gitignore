@@ -47,3 +47,6 @@ results.sarif
 
 *storybook.log
 storybook-static
+
+playwright-report/
+test-results/

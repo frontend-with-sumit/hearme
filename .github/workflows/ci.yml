@@ -25,6 +25,13 @@ jobs:
     env:
       DATABASE_URL: postgresql://hearme:hearme@localhost:5432/hearme
       DIRECT_URL: postgresql://hearme:hearme@localhost:5432/hearme
+      # Dummy values so the built app boots in the Playwright checks (spec
+      # 0003, AC-15). Constants for CI only, never real secrets, so the secret
+      # scanner is told to skip these two lines.
+      KEK_V1: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= # gitleaks:allow
+      HMAC_KEY_V1: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= # gitleaks:allow
+      CURRENT_KEK_VERSION: v1
+      CURRENT_HMAC_KEY_VERSION: v1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,6 +62,14 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
 
+      # Storybook is a separate build and must never ship to visitors (AC-13).
+      - name: Check Storybook is not in the app bundle
+        run: "! grep -rli storybook .next/static"
+
+      # Story tests and the Playwright checks drive a real Chromium.
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
       # A scoped, non-owner role that is granted everything on every new
       # table, so the AuditLog REVOKE in the migration (AC-14) has real
       # grants to remove and the smoke test can tell if it stops running.
@@ -73,3 +88,8 @@ jobs:
       - run: pnpm migrate:check
 
       - run: pnpm test
+
+      # Plays the built app (`next start`) in a browser: own origin only,
+      # theme without cookies, no flash, skip link, forced colours.
+      - name: App level checks
+        run: pnpm test:e2e

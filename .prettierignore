@@ -12,3 +12,6 @@ docs/
 
 # Written by the gitleaks CI action into the workspace
 results.sarif
+storybook-static
+playwright-report
+test-results

@@ -45,31 +45,40 @@ function accepts(target: Element | null, control: Element): boolean {
   );
 }
 
+/** Describes an element for a failure message. */
+function describe(el: Element | null): string {
+  if (!el) return "nothing";
+  const r = el.getBoundingClientRect();
+  const text = `${(el.textContent ?? "").trim().slice(0, 24)} @y${r.top.toFixed(1)}-${r.bottom.toFixed(1)}`;
+  return `<${el.tagName.toLowerCase()}${el.getAttribute("data-slot") ? ` data-slot=${el.getAttribute("data-slot")}` : ""}>${text ? ` "${text}"` : ""}`;
+}
+
 /** Returns a description of every control that fails the 44px probe. */
 export function findSmallHitAreas(root: Element): string[] {
   return Array.from(root.querySelectorAll(CONTROLS))
     .filter(isChecked)
-    .filter((control) => {
+    .flatMap((control) => {
       const rect = control.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return false;
+      if (rect.width === 0 || rect.height === 0) return [];
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
-      // Points off screen cannot be probed (a skip link waiting for focus).
-      const points: Array<[number, number]> = [
-        [cx - HALF, cy],
-        [cx + HALF, cy],
-        [cx, cy - HALF],
-        [cx, cy + HALF],
+      const points: Array<[string, number, number]> = [
+        ["left", cx - HALF, cy],
+        ["right", cx + HALF, cy],
+        ["above", cx, cy - HALF],
+        ["below", cx, cy + HALF],
       ];
-      return points.some(([x, y]) => {
-        if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) return false;
-        return !accepts(document.elementFromPoint(x, y), control);
+      return points.flatMap(([side, x, y]) => {
+        // Points off screen cannot be probed (a skip link waiting for focus).
+        if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) return [];
+        const hit = document.elementFromPoint(x, y);
+        return accepts(hit, control)
+          ? []
+          : [
+              `${describe(control)} ${Math.round(rect.width)}x${Math.round(rect.height)}, ${side} point hits ${describe(hit)}`,
+            ];
       });
-    })
-    .map(
-      (control) =>
-        `${control.tagName.toLowerCase()} "${(control.textContent ?? "").trim().slice(0, 30)}"`,
-    );
+    });
 }
 
 /** True when the page does not scroll sideways. */

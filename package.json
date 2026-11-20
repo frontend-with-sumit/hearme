@@ -17,7 +17,8 @@
     "migrate:check": "tsx prisma/check-migration.ts",
     "prepare": "husky",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@neon/config": "^1.14.0",

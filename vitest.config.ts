@@ -28,6 +28,19 @@ const storyProject = (theme: "light" | "dark") => ({
       enabled: true,
       headless: true,
       provider: playwright({}),
+      commands: {
+        // Lets story tests check the reduced motion rules (spec 0003, AC-10).
+        emulateReducedMotion: async (ctx: unknown, on: boolean) => {
+          const { page } = ctx as {
+            page: {
+              emulateMedia: (o: { reducedMotion: string }) => Promise<void>;
+            };
+          };
+          await page.emulateMedia({
+            reducedMotion: on ? "reduce" : "no-preference",
+          });
+        },
+      },
       instances: [{ browser: "chromium" as const }],
     },
   },
