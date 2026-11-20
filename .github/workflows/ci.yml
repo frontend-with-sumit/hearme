@@ -27,6 +27,14 @@ jobs:
       DIRECT_URL: postgresql://hearme:hearme@localhost:5432/hearme
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, so the secret scan below can read every commit.
+          fetch-depth: 0
+
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: pnpm/action-setup@v4
 
