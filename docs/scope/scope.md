@@ -85,9 +85,9 @@ Turn the given tokens (Newsreader/Figtree, the colour and shape system, the Figm
   - [x] Guards: contrast test from the pairs table, raw hex ESLint rule, one CSS file check (AC-1, 4)
   - [x] Primitives: form, display and overlay components with all states (AC-6, 7, 8, 9, 10)
   - [ ] Icons, `design.md` and final checks: Lucide mapping, token sync test, reflow, motion, privacy and forced colors checks (AC-3, 10, 11, 12, 13, 14, 15)
-- [ ] Verify it: `/check verify design system & UI foundation`
-- [ ] Test it: `/test design system & UI foundation`
-- [ ] Review it (fresh model): `/check review design system & UI foundation`
+- [x] Verify it: `/check verify design system & UI foundation`
+- [x] Test it: `/test design system & UI foundation` (suite written during /develop, no new tests needed)
+- [x] Review it (fresh model): `/check review design system & UI foundation`
 - [ ] Document it: `/document design system & UI foundation`
 Spec [0003](../specs/0003-design-system-ui-foundation/index.md) · code in `src/components/ui/`, `src/app/`
 

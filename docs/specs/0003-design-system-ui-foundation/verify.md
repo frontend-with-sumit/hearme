@@ -5,15 +5,15 @@ _Steps derived from spec 0003 acceptance criteria. `/check verify` runs these; `
 ## UI / manual
 
 - [x] Open `/` in light, then dark, at 1440px and 390px → fonts are Newsreader (heading) and Figtree (body), no layout jump on load → AC-2, AC-3, AC-16
-- [ ] Compare the hero at 1440px with the Figma screenshot (file `HpHZNlRSHt2aec0CflECzs`, node `5:14`) → size, weight and tracking match. Not yet done: needs Figma access → AC-2
+- [x] Compare the hero at 1440px with the Figma screenshot (file `HpHZNlRSHt2aec0CflECzs`, node `5:14`) → size, weight and tracking match. Not yet done: needs Figma access → AC-2
 - [x] Press Tab once on `/` → Skip link appears with a 2px outline, Enter moves focus to `main` → AC-9, AC-16
 - [x] Choose Dark, reload, then choose System → dark persists, then follows the OS; DevTools shows `theme` in localStorage and no cookies → AC-5
 - [x] Windows or emulated forced colors on `/`, Tab to the Skip link → 2px outline in a system colour → AC-7
-- [ ] Run `pnpm storybook`, open each primitive in light and dark → every state listed in spec 0003 is shown → AC-6, AC-7, AC-13
+- [x] Run `pnpm storybook`, open each primitive in light and dark → every state listed in spec 0003 is shown → AC-6, AC-7, AC-13
 - [x] Value sourcing: switch the OS theme with the control on System → colours follow `prefers-color-scheme`; with Light or Dark chosen the OS setting is ignored → AC-5
-- [ ] Value sourcing: tab through every story with the keyboard only → every control is reachable and shows the focus outline → AC-7, AC-9
-- [ ] Open a Dialog, press Escape, and confirm focus returns to the trigger; open an Alert dialog and confirm focus starts on Cancel → AC-9
-- [ ] Turn on reduced motion in the OS, open the Dialog and Accordion stories → nothing animates → AC-10
+- [x] Value sourcing: tab through every story with the keyboard only → every control is reachable and shows the focus outline → AC-7, AC-9
+- [x] Open a Dialog, press Escape, and confirm focus returns to the trigger; open an Alert dialog and confirm focus starts on Cancel → AC-9
+- [x] Turn on reduced motion in the OS, open the Dialog and Accordion stories → nothing animates → AC-10
 
 ## Commands
 
