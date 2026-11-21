@@ -46,6 +46,21 @@ const storyProject = (theme: "light" | "dark") => ({
   },
 });
 
+/**
+ * Storybook's test panel starts Vitest itself (VITEST_STORYBOOK=true) and its
+ * plugin renames every Storybook project to the same `storybook:<configDir>`.
+ * Vitest then refuses to start ("Project name is not unique"). So the panel
+ * gets one project (light; the toolbar switches theme). The command line and CI
+ * keep both themes.
+ */
+export const isStorybookPanelRun = () =>
+  process.env.VITEST_STORYBOOK === "true";
+
+export const storyProjects = () =>
+  isStorybookPanelRun()
+    ? [storyProject("light")]
+    : [storyProject("light"), storyProject("dark")];
+
 export default defineConfig({
   resolve: { alias: { "@": path.join(dirname, "src") } },
   test: {
@@ -58,8 +73,7 @@ export default defineConfig({
           environment: "node",
         },
       },
-      storyProject("light"),
-      storyProject("dark"),
+      ...storyProjects(),
     ],
   },
 });
