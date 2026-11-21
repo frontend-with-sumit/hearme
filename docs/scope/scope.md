@@ -88,7 +88,7 @@ Turn the given tokens (Newsreader/Figtree, the colour and shape system, the Figm
 - [x] Verify it: `/check verify design system & UI foundation`
 - [x] Test it: `/test design system & UI foundation` (suite written during /develop, no new tests needed)
 - [x] Review it (fresh model): `/check review design system & UI foundation`
-- [ ] Document it: `/document design system & UI foundation`
+- [x] Document it: `/document design system & UI foundation`
 Spec [0003](../specs/0003-design-system-ui-foundation/index.md) · code in `src/components/ui/`, `src/app/`
 
 ## Slice 1: Core booking thread
