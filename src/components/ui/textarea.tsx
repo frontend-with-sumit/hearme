@@ -48,6 +48,7 @@ export function Textarea({
   return (
     <div className="flex w-full flex-col gap-1.5">
       <textarea
+        {...props}
         data-slot="textarea"
         maxLength={maxLength}
         value={value}
@@ -61,7 +62,6 @@ export function Textarea({
           "aria-invalid:border-destructive",
           className,
         )}
-        {...props}
       />
       {counting ? (
         <>

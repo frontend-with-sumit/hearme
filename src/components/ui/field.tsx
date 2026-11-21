@@ -44,15 +44,19 @@ export function Field({
     generated;
   const helperId = `${controlId}-helper`;
   const errorId = `${controlId}-error`;
+  const ownDescribedBy = children.props["aria-describedby"] as
+    string | undefined;
   const describedBy =
-    [helper ? helperId : undefined, error ? errorId : undefined]
+    [helper ? helperId : undefined, error ? errorId : undefined, ownDescribedBy]
       .filter(Boolean)
       .join(" ") || undefined;
 
+  // Only set what Field knows. An undefined value would erase the control's own
+  // `aria-invalid` or `aria-describedby`.
   const control = cloneElement(children, {
     id: controlId,
-    "aria-describedby": describedBy,
-    "aria-invalid": error ? true : children.props["aria-invalid"],
+    ...(describedBy ? { "aria-describedby": describedBy } : {}),
+    ...(error ? { "aria-invalid": true } : {}),
   });
 
   return (

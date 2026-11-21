@@ -19,6 +19,7 @@ export function Input({
 }: InputProps) {
   return (
     <input
+      {...props}
       type={type}
       data-slot="input"
       aria-invalid={invalid || props["aria-invalid"] || undefined}
@@ -29,7 +30,6 @@ export function Input({
         "aria-invalid:border-destructive",
         className,
       )}
-      {...props}
     />
   );
 }
