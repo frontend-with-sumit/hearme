@@ -28,9 +28,23 @@ pnpm build
 # Lint
 pnpm lint
 
+# Typecheck
+pnpm typecheck
+
 # Test (runner installed by /test; Vitest + Playwright per spec 0001)
 pnpm test
+
+# Browser e2e (needs pnpm build first)
+pnpm test:e2e
+
+# Storybook (UI primitives; not part of the app build)
+pnpm storybook
+pnpm build-storybook
 ```
+
+## Design system
+
+- Design system: build all UI to `design.md` (token tables and Figma source of truth); token values live in `src/app/globals.css`.
 
 ## Specs
 
@@ -76,12 +90,18 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
 - [razorpay-webhooks](.agents/skills/razorpay-webhooks/): `hookdeck/webhook-skills`, Razorpay webhook signature verification and event handling
 - [gws-calendar](.agents/skills/gws-calendar/): `googleworkspace/cli`, Google Calendar/Meet API
 - [playwright-cli](.agents/skills/playwright-cli/): `microsoft/playwright-cli`, Playwright e2e conventions
+- [shadcn](.agents/skills/shadcn/): `shadcn-ui/ui`, adding and restyling shadcn components
+- [storybook-init](.agents/skills/storybook-init/): `storybookjs/storybook`, Storybook setup
+- [tailwind-4-docs](.agents/skills/tailwind-4-docs/): `Lombiq/Tailwind-Agent-Skills`, Tailwind CSS v4 reference
+- [tailwind-design-system](.agents/skills/tailwind-design-system/): `wshobson/agents`, Tailwind v4 design tokens and component patterns
 
-Declined: Vitest skill (antfu/skills@vitest)
+Declined: Vitest skill (antfu/skills@vitest), extra skills and MCP servers for Storybook, shadcn, Radix, next-themes (2026-11-21, covered by installed skills)
 MCP servers: resend-mcp (recommended, `npx -y resend-mcp`), Sentry MCP (recommended, `claude mcp add --transport http sentry https://mcp.sentry.dev/mcp`), Upstash MCP (recommended, `npx -y @upstash/mcp-server`), Razorpay MCP (recommended, `razorpay/razorpay-mcp-server`)
 
 ## Context files
 
 <!-- Nested AGENTS.md files are listed here as they are created -->
+
+- [src/components/ui/AGENTS.md](src/components/ui/AGENTS.md): UI primitives, token rules, accessibility checks and Storybook conventions
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._
